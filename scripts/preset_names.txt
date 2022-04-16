@@ -1,0 +1,31 @@
+Arsenate
+C14
+Carbon Dioxide
+Carbon Monoxide
+Crust
+Cyanide
+Default
+Exotic Metals 1
+Free Radical
+Halogens 1
+Halogens 2
+Hydrochloric Acid
+Hydrofluoric Acid
+Isotonic
+Light Metals 1
+Meltdown
+Methane
+Nitrate
+Noble Metals
+N-Type
+Phosphate
+P-Type
+Radon Leak
+Rare Earth Chimes
+Rare Earth Echo
+Reductant
+Red Earth
+Spontaneous Decay
+Water
+White Paint
+Xenon Hexafluoride
