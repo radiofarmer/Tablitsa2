@@ -707,11 +707,11 @@ EndFunction:
   SetDirty(false);
 }
 
-ModPlotControl::ModPlotControl(const IRECT& bounds, double* table, const int tableSize, const int numPoints, const IColor& color, const IVStyle& style, float gearing) :
-  ModPlotControl(bounds, kNoParameter, table, tableSize, numPoints, color, style, gearing)
+Tablitsa2ModPlotControl::Tablitsa2ModPlotControl(const IRECT& bounds, double* table, const int tableSize, const int numPoints, const IColor& color, const IVStyle& style, float gearing) :
+  Tablitsa2ModPlotControl(bounds, kNoParameter, table, tableSize, numPoints, color, style, gearing)
 {}
 
-ModPlotControl::ModPlotControl(const IRECT& bounds, int paramIdx, double* table, const int tableSize, const int numPoints, const IColor& color, const IVStyle& style, float gearing) :
+Tablitsa2ModPlotControl::Tablitsa2ModPlotControl(const IRECT& bounds, int paramIdx, double* table, const int tableSize, const int numPoints, const IColor& color, const IVStyle& style, float gearing) :
   IVPlotControl(bounds, { {color, [this](double x) {return mTable[(static_cast<unsigned int>(x * static_cast<int>(mTableSize) + 1) - mTablePhase) % mTableSize];}} }, numPoints, "", style),
   mTableSize(tableSize), mGearing(gearing)
 {
@@ -724,16 +724,22 @@ ModPlotControl::ModPlotControl(const IRECT& bounds, int paramIdx, double* table,
   SetParamIdx(paramIdx);
 }
 
-void ModPlotControl::SetPlotTable(const double* pTable)
+void Tablitsa2ModPlotControl::SetPlotTable(const double* pTable)
 {
   mTable = pTable;
   SetDirty(false);
 }
 
-void ModPlotControl::OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod)
+void Tablitsa2ModPlotControl::OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod)
 {
   mTablePhase += static_cast<int>(dX * mGearing);
   mTablePhase %= mTableSize;
   SetValue(static_cast<double>((mTablePhase - mTableSize) % mTableSize) / mTableSize);
   SetDirty();
+}
+
+Tablitsa2InteractivePlotControl::Tablitsa2InteractivePlotControl(const IRECT& bounds, int numPoints, int paramIdx, const char* label, const IVStyle& style, double min, double max) :
+  IControl(bounds, paramIdx), IVectorBase(style, true, false)
+{
+  AttachIControl(this, label);
 }
