@@ -1,10 +1,8 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 Tablitsa2 Synthesizer (In Development)
 ==========================
 A polyphonic wavetable synthesizer inspired by chemistry, built with the the IPlug2 framework, a fork of Cockos WDL by Oli Larkin. Available as a stand-alone app or as a VST3 plugin.
+
+This is an updated, non-backwards-compatible version of my original Tablitsa Synthesizer, which is available to download on my Github.
 
 ## Features
   * Two wavetable oscillators with adjustable table position/timbre, phase distortion, and formant shift. The wavetables are band-limited by 8x oversampled, octave-spaced mipmaps and by passing the 2x oversampled oscillator output through a 12th-order IIR filter.
@@ -31,19 +29,3 @@ For tips on modifying the application to better suit your needs (e.g. making new
 If you enjoy using Tablitsa2 or its source code and would like to support me, you can donate via PayPal:
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate?business=NUFQNKX9ET4VL&currency_code=USD)
-=======
-# Tablitsa2
-Wavetable synthesizer inspired by chemistry
->>>>>>> bfc74b2097925dd9f3537878c3d1144f747002c3
-=======
-# Tablitsa2
-Wavetable synthesizer inspired by chemistry
->>>>>>> bfc74b2097925dd9f3537878c3d1144f747002c3
-=======
-# Tablitsa2
-Wavetable synthesizer inspired by chemistry
->>>>>>> bfc74b2097925dd9f3537878c3d1144f747002c3
-=======
-# Tablitsa2
-Wavetable synthesizer inspired by chemistry
->>>>>>> bfc74b2097925dd9f3537878c3d1144f747002c3
