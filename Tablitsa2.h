@@ -129,6 +129,11 @@ enum EParams
   kParamSequencerRateMode,
   kParamSequencerRestart,
   kParamSequencerAmp,
+  kParamMidiVelocityCurve,
+  kParamMidiAftertouchCurve,
+  kParamMidiModWheelCurve,
+  kParamMidiKeytrackCurve,
+  kParamMidiRandomCurve,
   kParamWavetable1Pitch, // Voice-specific (polyphonic) parameters
   kParamWavetable1Pos,
   kParamWavetable1Bend,
@@ -321,6 +326,7 @@ enum EControlTags
   kCtrlTagMidiCC4Depth,
   kCtrlTagMidiCC5Depth,
   kCtrlTagMidiCC6Depth, */// !Modulator depths
+  kCtrlTagMidiControlCurve,
   kCtrlTagLFO1RateMode,
   kCtrlTagLFO2RateMode,
   kCtrlTagSequencerRateMode,
@@ -347,6 +353,7 @@ enum EControlTags
   kCtrlTagFilter2Type,
   kCtrlTagFilter2Osc1,
   kCtrlTagFilter2Osc2,
+  kCtrlTagOscModSource,
   kCtrlTagOscModFreq,
   kCtrlTagOscModAmt,
   kCtrlTagOsc1ModSwitch,

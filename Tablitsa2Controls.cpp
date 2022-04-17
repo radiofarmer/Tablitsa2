@@ -53,15 +53,17 @@ void ModSliderControl::SetValue(double value, int valIdx)
 
 void ModSliderControl::DrawWidget(IGraphics& g)
 {
-  Tablitsa2SliderControl::DrawWidget(g);
   float value = (float)GetValue(); // NB: Value is normalized to between 0. and 1.
   const IRECT handleBounds = (IsDisabled()) ? mTrackBounds.FracRect(mDirection, 0.f) : mTrackBounds.FracRect(mDirection, value);
-  const IRECT filledTrack = mDirection == EDirection::Vertical ? (IsDisabled()) ?
-    handleBounds : ((value >= 0.5f) ?
+  const IRECT filledTrack = mDirection == EDirection::Vertical ? (
+    IsDisabled()) ?
+    handleBounds :
+    ((value >= 0.5f) ?
       mTrackBounds.GetGridCell(0, 0, 2, 1).FracRect(mDirection, 2.f * (value - 0.5f)) :
       mTrackBounds.GetGridCell(1, 0, 2, 1).FracRect(mDirection, 2.f * (0.5 - value), true)) : // <- Vertical
     (IsDisabled()) ?
-    handleBounds : ((value >= 0.5f) ?
+    handleBounds :
+    ((value >= 0.5f) ?
       mTrackBounds.GetGridCell(0, 1, 1, 2).FracRect(mDirection, 2.f * (value - 0.5f)) :
       mTrackBounds.GetGridCell(0, 0, 1, 2).FracRect(mDirection, 2.f * (0.5 - value), true)); // <- Horizontal
 
@@ -93,7 +95,7 @@ void ModSliderControl::DrawTrack(IGraphics& g, const IRECT& filledArea)
 {
   const float extra = mHandleInsideTrack ? mHandleSize : 0.f;
   const IRECT adjustedTrackBounds = mDirection == EDirection::Vertical ? mTrackBounds.GetVPadded(extra) : mTrackBounds.GetHPadded(extra);
-  // Padd the filled area less, to account for the asymmetric rectangular handle
+  // Pad the filled area less, to account for the asymmetric rectangular handle
   const IRECT adjustedFillBounds = mDirection == EDirection::Vertical ? filledArea.GetVPadded(extra / 2.f) : filledArea.GetHPadded(extra / 2.f);
   const float cr = GetRoundedCornerRadius(mTrackBounds);
 
@@ -707,11 +709,11 @@ EndFunction:
   SetDirty(false);
 }
 
-ModPlotControl::ModPlotControl(const IRECT& bounds, double* table, const int tableSize, const int numPoints, const IColor& color, const IVStyle& style, float gearing) :
-  ModPlotControl(bounds, kNoParameter, table, tableSize, numPoints, color, style, gearing)
+Tablitsa2ModPlotControl::Tablitsa2ModPlotControl(const IRECT& bounds, double* table, const int tableSize, const int numPoints, const IColor& color, const IVStyle& style, float gearing) :
+  Tablitsa2ModPlotControl(bounds, kNoParameter, table, tableSize, numPoints, color, style, gearing)
 {}
 
-ModPlotControl::ModPlotControl(const IRECT& bounds, int paramIdx, double* table, const int tableSize, const int numPoints, const IColor& color, const IVStyle& style, float gearing) :
+Tablitsa2ModPlotControl::Tablitsa2ModPlotControl(const IRECT& bounds, int paramIdx, double* table, const int tableSize, const int numPoints, const IColor& color, const IVStyle& style, float gearing) :
   IVPlotControl(bounds, { {color, [this](double x) {return mTable[(static_cast<unsigned int>(x * static_cast<int>(mTableSize) + 1) - mTablePhase) % mTableSize];}} }, numPoints, "", style),
   mTableSize(tableSize), mGearing(gearing)
 {
@@ -724,16 +726,80 @@ ModPlotControl::ModPlotControl(const IRECT& bounds, int paramIdx, double* table,
   SetParamIdx(paramIdx);
 }
 
-void ModPlotControl::SetPlotTable(const double* pTable)
+void Tablitsa2ModPlotControl::SetPlotTable(const double* pTable)
 {
   mTable = pTable;
   SetDirty(false);
 }
 
-void ModPlotControl::OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod)
+void Tablitsa2ModPlotControl::OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod)
 {
   mTablePhase += static_cast<int>(dX * mGearing);
   mTablePhase %= mTableSize;
   SetValue(static_cast<double>((mTablePhase - mTableSize) % mTableSize) / mTableSize);
   SetDirty();
+}
+
+Tablitsa2ParametricPlotControl::Tablitsa2ParametricPlotControl(const IRECT& bounds, int numPoints, int paramIdx, const char* label, const IVStyle& style, double min, double max, float gearing) :
+  IControl(bounds, paramIdx), IVectorBase(style, false, false), mMin(min), mMax(max), mNumPoints(numPoints), mGearing(gearing)
+{
+  AttachIControl(this, label);
+}
+
+void Tablitsa2ParametricPlotControl::InterpolateCubicBezier(const float* p0, const float* p1, const float* p2, const float* p3, const float t, float* y)
+{
+  float a[2], b[2], c[2], d[2], e[2];
+  InterpolateLinearBezier(p0, p1, t, a);
+  InterpolateLinearBezier(p1, p2, t, b);
+  InterpolateLinearBezier(p2, p3, t, c);
+  InterpolateLinearBezier(a, b, t, d);
+  InterpolateLinearBezier(b, c, t, e);
+  InterpolateLinearBezier(d, e, t, y);
+}
+
+void Tablitsa2ParametricPlotControl::OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod)
+{
+  mTension += dY * mGearing * 0.01;
+  mTension = Clip(mTension, 0.f, 1.f);
+  SetValue(mTension);
+  SetDirty();
+}
+
+void Tablitsa2ParametricPlotControl::Draw(IGraphics& g)
+{
+  DrawBackground(g, mRECT);
+  DrawLabel(g);
+
+  constexpr float anchor_left[]{ 0.f, 0.5f };
+  constexpr float anchor_top[]{ 0.5f, 1.f };
+  constexpr float anchor_bottom[]{ 0.5f, 0.f };
+  constexpr float anchor_right[]{ 1.f, 0.5f };
+
+  const float p0[]{ 0.f, 0.f };
+  float p1[2];
+  float p2[2];
+  const float p3[]{ 1.f, 1.f };
+
+  // Interpolate intermediate points based on current parameter value
+  InterpolateLinearBezier(anchor_left, anchor_bottom, mTension, p1);
+  InterpolateLinearBezier(anchor_right, anchor_top, 1.f - mTension, p2);
+
+  float* x = new float[mNumPoints];
+  float* y = new float[mNumPoints];
+  float* p = new float[mNumPoints * 2];
+
+  for (int i{}; i < mNumPoints; ++i)
+  {
+    const float t = static_cast<double>(i) / mNumPoints;
+    InterpolateCubicBezier(p0, p1, p2, p3, t, p + i*2);
+    x[i] = (p+i*2)[0];
+    y[i] = (p+i*2)[1];
+  }
+
+  g.DrawData(COLOR_WHITE, mWidgetBounds, y, mNumPoints, x, 0, 2.0f);
+
+  if (mStyle.drawFrame)
+    g.DrawRect(GetColor(kFR), mWidgetBounds, &mBlend, mStyle.frameThickness);
+
+  delete y;
 }

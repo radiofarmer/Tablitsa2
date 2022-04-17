@@ -42,7 +42,7 @@ const IVStyle modKnobStyle{ TABLITSA2_STYLE.WithShowLabel(true).WithColors(knobC
 
 const IVStyle toggleStyle{ TABLITSA2_STYLE.WithDrawFrame(true).WithColor(EVColor::kFG, COLOR_TRANSPARENT).WithColor(EVColor::kHL, IColor(100, 220, 0, 180)).WithShowLabel(false) };
 
-const IVStyle sliderStyle{ TABLITSA2_STYLE.WithShowValue(true).WithLabelText(TABLITSA2_STYLE.labelText.WithSize(17.f)) };
+const IVStyle sliderStyle{ TABLITSA2_STYLE.WithShowValue(false) };
 
 const IVStyle modSliderStyle{ sliderStyle/*.WithShowValue(true)*/ };
 
@@ -603,17 +603,17 @@ protected:
   IPopupMenuControl* mMenu;
 };
 
-class ModPlotControl : public virtual IVPlotControl
+class Tablitsa2ModPlotControl : public virtual IVPlotControl
 {
 public:
-  ModPlotControl(const IRECT& bounds, double* table, const int tableSize, const int numPoints, const IColor& color = TABLITSA2_STYLE.colorSpec.mColors[EVColor::kHL], const IVStyle& style = TABLITSA2_STYLE, float gearing=4.f);
+  Tablitsa2ModPlotControl(const IRECT& bounds, double* table, const int tableSize, const int numPoints, const IColor& color = TABLITSA2_STYLE.colorSpec.mColors[EVColor::kHL], const IVStyle& style = TABLITSA2_STYLE, float gearing=4.f);
 
-  ModPlotControl(const IRECT& bounds, int paramIdx, double* table, const int tableSize, const int numPoints, const IColor& color = TABLITSA2_STYLE.colorSpec.mColors[EVColor::kHL], const IVStyle& style = TABLITSA2_STYLE, float gearing = 4.f);
+  Tablitsa2ModPlotControl(const IRECT& bounds, int paramIdx, double* table, const int tableSize, const int numPoints, const IColor& color = TABLITSA2_STYLE.colorSpec.mColors[EVColor::kHL], const IVStyle& style = TABLITSA2_STYLE, float gearing = 4.f);
 
   void SetPlotTable(const double* pTable);
   void OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod) override;
 
-  ~ModPlotControl() { if (mEmptyTable) delete[] mEmptyTable; }
+  ~Tablitsa2ModPlotControl() { if (mEmptyTable) delete[] mEmptyTable; }
 
 protected:
   const double* mTable;
@@ -621,6 +621,37 @@ protected:
   float mGearing;
   unsigned int mTablePhase{ 0 };
   unsigned int mTableSize;
+};
+
+class Tablitsa2ParametricPlotControl : public virtual IControl, IVectorBase
+{
+public:
+  Tablitsa2ParametricPlotControl(const IRECT& bounds, int numPoints, int paramIdx = kNoParameter, const char* label = "", const IVStyle& style = TABLITSA2_STYLE.WithDrawFrame(true).WithShowLabel(true), double min = 0., double max = 1., float gearing = 0.5f);
+
+  void OnResize() override
+  {
+    SetTargetRECT(MakeRects(mRECT));
+    SetDirty(false);
+  }
+
+  void OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod);
+
+  void Draw(IGraphics& g) override;
+
+protected:
+  static inline void InterpolateLinearBezier(const float* p0, const float* p1, const float t, float* b)
+  {
+    b[0] = p0[0] - ((p0[0] - p1[0]) * t);
+    b[1] = p0[1] - ((p0[1] - p1[1]) * t);
+  }
+
+  static void InterpolateCubicBezier(const float* p0, const float* p1, const float* p2, const float* p3, const float t, float* b);
+
+  double mMin;
+  double mMax;
+  float mGearing;
+  int mNumPoints;
+  float mTension{ 0.f };
 };
 
 END_IPLUG_NAMESPACE
