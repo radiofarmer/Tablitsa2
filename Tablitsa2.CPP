@@ -572,10 +572,11 @@ Tablitsa2::Tablitsa2(const InstanceInfo& info)
         pOsc2Switch->SetDirty(false);
         pOsc1Switch->SetDirty(false);
       });
-    pGraphics->AttachControl(new IVToggleControl(oscModPanel.GetVPadded(-10.f).GetVPadded(-10.f).GetGridCell(1, 0, 3, 3).GetMidHPadded(35.f), kParamOsc1PM, "Osc1", toggleStyle, "Osc 1 OFF", "Osc 1 ON"), kCtrlTagOsc1ModSwitch, "OscMod");
-    pGraphics->AttachControl(new IVToggleControl(oscModPanel.GetVPadded(-10.f).GetVPadded(-10.f).GetGridCell(2, 0, 3, 3).GetMidHPadded(35.f), kParamOsc2PM, "Osc1", toggleStyle, "Osc 2 OFF", "Osc 2 ON"), kCtrlTagOsc2ModSwitch, "OscMod");
-    pGraphics->AttachControl(new Tablitsa2IVModKnobControl(oscModPanel.GetVPadded(-10.f).GetGridCell(0, 1, 1, 3).GetCentredInside(dialSize), kParamPhaseModFreq, kVPhaseModFreq, "Pitch"), kCtrlTagOscModFreq, "OscMod");
-    pGraphics->AttachControl(new Tablitsa2IVModKnobControl(oscModPanel.GetGridCell(0, 2, 1, 3).GetCentredInside(dialSize), kParamPhaseModAmount, kVPhaseModAmt, "Amount"), kCtrlTagOscModAmt, "OscMod");
+    pGraphics->AttachControl(new IVToggleControl(oscModPanel.GetVPadded(-20.f).GetGridCell(1, 0, 3, 3).GetMidHPadded(35.f), kParamOsc1PM, "Osc1", toggleStyle, "Osc 1 OFF", "Osc 1 ON"), kCtrlTagOsc1ModSwitch, "OscMod");
+    pGraphics->AttachControl(new IVToggleControl(oscModPanel.GetVPadded(-20.f).GetGridCell(2, 0, 3, 3).GetMidHPadded(35.f), kParamOsc2PM, "Osc1", toggleStyle, "Osc 2 OFF", "Osc 2 ON"), kCtrlTagOsc2ModSwitch, "OscMod");
+    pGraphics->AttachControl(new IVTabSwitchControl(oscModPanel.GetVPadded(-20.f).GetGridCell(0, 1, 1, 4).GetHPadded(-20.f), kNoParameter, {"Sine", "Osc1", "Osc2"}, "Source", TABLITSA2_STYLE.WithLabelText(TABLITSA2_TEXT.WithSize(15.f)), EVShape::Rectangle, EDirection::Vertical), kCtrlTagOscModSource, "OscMod");
+    pGraphics->AttachControl(new Tablitsa2IVModKnobControl(oscModPanel.GetVPadded(-10.f).GetGridCell(0, 3, 1, 4).GetCentredInside(dialSize), kParamPhaseModFreq, kVPhaseModFreq, "Pitch"), kCtrlTagOscModFreq, "OscMod");
+    pGraphics->AttachControl(new Tablitsa2IVModKnobControl(oscModPanel.GetGridCell(0, 2, 1, 4).GetCentredInside(dialSize), kParamPhaseModAmount, kVPhaseModAmt, "Amount"), kCtrlTagOscModAmt, "OscMod");
     pGraphics->AttachControl(new Tablitsa2VGroupControl(oscModPanel.GetPadded(modulePad[0], modulePad[1], modulePad[2], modulePad[3]), "Oscillator Modulation"));
     
     /* Filter Panel */

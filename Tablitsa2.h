@@ -353,6 +353,7 @@ enum EControlTags
   kCtrlTagFilter2Type,
   kCtrlTagFilter2Osc1,
   kCtrlTagFilter2Osc2,
+  kCtrlTagOscModSource,
   kCtrlTagOscModFreq,
   kCtrlTagOscModAmt,
   kCtrlTagOsc1ModSwitch,
