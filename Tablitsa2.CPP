@@ -378,9 +378,29 @@ Tablitsa2::Tablitsa2(const InstanceInfo& info)
     const IRECT staticModPanel = masterPanel.GetGridCell(1, 0, 2, 3).GetHAlignedTo(masterPanel.GetGridCell(0, 0, 1, 6), EAlign::Near).GetReducedFromRight(19.f).GetPadded(-15.f);
     pGraphics->AttachControl(new DropdownListControl(staticModPanel.GetFromTop(40.f).GetHShifted(-4.f).GetPadded(-2.f), TABLITSA2_MIDI_MOD_NAMES, TABLITSA2_TEXT.WithSize(16.f)), kCtrlTagMidiModList, "MidiMods")->SetActionFunction(
       [this, pGraphics](IControl* pControl){
+        // Index of the selected midi mod enumeration, for easy reference
         const int selected{kMidiModKeys[dynamic_cast<DropdownListControl*>(pControl)->GetCurrentIndex()]};
-        // Get pointer to response curve control
-        // IControl* pCurveControl{ pGraphics->GetControlWithTag(kCtrlTagMidiControlCurve) };
+        // Get pointer to response curve control and set its parameter
+        IControl* pCurveControl{ pGraphics->GetControlWithTag(kCtrlTagMidiControlCurve) };
+        switch (selected)
+        {
+        case kVelocity:
+          pCurveControl->SetParamIdx(kParamMidiVelocityCurve);
+          break;
+        case kAftertouch:
+          pCurveControl->SetParamIdx(kParamMidiAftertouchCurve);
+          break;
+        case kModWheel:
+          pCurveControl->SetParamIdx(kParamMidiModWheelCurve);
+          break;
+        case kKeytrack:
+          pCurveControl->SetParamIdx(kParamMidiKeytrackCurve);
+          break;
+        case kRandom:
+          pCurveControl->SetParamIdx(kParamMidiRandomCurve);
+          break;
+        }
+
         for (int i{}; i < sizeof(kMidiModKeys) / sizeof(EControlTags); ++i) {
           IControl* pSlider{ pGraphics->GetControlWithTag(kMidiModKeys[i]) };
           if (pSlider && kMidiModKeys[i] != selected)

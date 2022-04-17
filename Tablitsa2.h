@@ -133,6 +133,7 @@ enum EParams
   kParamMidiAftertouchCurve,
   kParamMidiModWheelCurve,
   kParamMidiKeytrackCurve,
+  kParamMidiRandomCurve,
   kParamWavetable1Pitch, // Voice-specific (polyphonic) parameters
   kParamWavetable1Pos,
   kParamWavetable1Bend,
