@@ -623,13 +623,35 @@ protected:
   unsigned int mTableSize;
 };
 
-class Tablitsa2InteractivePlotControl : public virtual IControl, IVectorBase
+class Tablitsa2ParametricPlotControl : public virtual IControl, IVectorBase
 {
 public:
-  Tablitsa2InteractivePlotControl(const IRECT& bounds, int numPoints, int paramIdx = kNoParameter, const char* label = "", const IVStyle& style = TABLITSA2_STYLE, double min = 0., double max = 1.);
+  Tablitsa2ParametricPlotControl(const IRECT& bounds, int numPoints, int paramIdx = kNoParameter, const char* label = "", const IVStyle& style = TABLITSA2_STYLE.WithDrawFrame(true).WithShowLabel(true), double min = 0., double max = 1., float gearing = 0.5f);
 
-  void Draw(IGraphics& g) {}
+  void OnResize() override
+  {
+    SetTargetRECT(MakeRects(mRECT));
+    SetDirty(false);
+  }
 
+  void OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod);
+
+  void Draw(IGraphics& g) override;
+
+protected:
+  static inline void InterpolateLinearBezier(const float* p0, const float* p1, const float t, float* b)
+  {
+    b[0] = p0[0] - ((p0[0] - p1[0]) * t);
+    b[1] = p0[1] - ((p0[1] - p1[1]) * t);
+  }
+
+  static void InterpolateCubicBezier(const float* p0, const float* p1, const float* p2, const float* p3, const float t, float* b);
+
+  double mMin;
+  double mMax;
+  float mGearing;
+  int mNumPoints;
+  float mTension{ 0.f };
 };
 
 END_IPLUG_NAMESPACE

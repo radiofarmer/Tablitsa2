@@ -738,8 +738,66 @@ void Tablitsa2ModPlotControl::OnMouseDrag(float x, float y, float dX, float dY, 
   SetDirty();
 }
 
-Tablitsa2InteractivePlotControl::Tablitsa2InteractivePlotControl(const IRECT& bounds, int numPoints, int paramIdx, const char* label, const IVStyle& style, double min, double max) :
-  IControl(bounds, paramIdx), IVectorBase(style, true, false)
+Tablitsa2ParametricPlotControl::Tablitsa2ParametricPlotControl(const IRECT& bounds, int numPoints, int paramIdx, const char* label, const IVStyle& style, double min, double max, float gearing) :
+  IControl(bounds, paramIdx), IVectorBase(style, false, false), mMin(min), mMax(max), mNumPoints(numPoints), mGearing(gearing)
 {
   AttachIControl(this, label);
+}
+
+void Tablitsa2ParametricPlotControl::InterpolateCubicBezier(const float* p0, const float* p1, const float* p2, const float* p3, const float t, float* y)
+{
+  float a[2], b[2], c[2], d[2], e[2];
+  InterpolateLinearBezier(p0, p1, t, a);
+  InterpolateLinearBezier(p1, p2, t, b);
+  InterpolateLinearBezier(p2, p3, t, c);
+  InterpolateLinearBezier(a, b, t, d);
+  InterpolateLinearBezier(b, c, t, e);
+  InterpolateLinearBezier(d, e, t, y);
+}
+
+void Tablitsa2ParametricPlotControl::OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod)
+{
+  mTension += dY * mGearing * 0.01;
+  mTension = Clip(mTension, 0.f, 1.f);
+  SetValue(mTension);
+  SetDirty();
+}
+
+void Tablitsa2ParametricPlotControl::Draw(IGraphics& g)
+{
+  DrawBackground(g, mRECT);
+  DrawLabel(g);
+
+  constexpr float anchor_left[]{ 0.f, 0.5f };
+  constexpr float anchor_top[]{ 0.5f, 1.f };
+  constexpr float anchor_bottom[]{ 0.5f, 0.f };
+  constexpr float anchor_right[]{ 1.f, 0.5f };
+
+  const float p0[]{ 0.f, 0.f };
+  float p1[2];
+  float p2[2];
+  const float p3[]{ 1.f, 1.f };
+
+  // Interpolate intermediate points based on current parameter value
+  InterpolateLinearBezier(anchor_left, anchor_bottom, mTension, p1);
+  InterpolateLinearBezier(anchor_right, anchor_top, 1.f - mTension, p2);
+
+  float* x = new float[mNumPoints];
+  float* y = new float[mNumPoints];
+  float* p = new float[mNumPoints * 2];
+
+  for (int i{}; i < mNumPoints; ++i)
+  {
+    const float t = static_cast<double>(i) / mNumPoints;
+    InterpolateCubicBezier(p0, p1, p2, p3, t, p + i*2);
+    x[i] = (p+i*2)[0];
+    y[i] = (p+i*2)[1];
+  }
+
+  g.DrawData(COLOR_WHITE, mWidgetBounds, y, mNumPoints, x, 0, 2.0f);
+
+  if (mStyle.drawFrame)
+    g.DrawRect(GetColor(kFR), mWidgetBounds, &mBlend, mStyle.frameThickness);
+
+  delete y;
 }

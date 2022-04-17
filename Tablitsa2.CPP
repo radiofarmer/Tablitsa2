@@ -375,27 +375,29 @@ Tablitsa2::Tablitsa2(const InstanceInfo& info)
     // pGraphics->AttachControl(new IBKnobControl(masterPanel.GetGridCell(0, 0, 4, 6).GetCentredInside(dialSize), dialImg, kParamGain), kNoTag, "Master");
     pGraphics->AttachControl(new Tablitsa2IVModKnobControl(masterPanel.GetGridCell(0, 1, 4, 6).GetVShifted(-15.f).GetCentredInside(dialSize), kParamPan, kVPan, "Pan"), kNoTag, "Master");
     // MIDI Control Modulators
-    const IRECT staticModPanel = masterPanel.GetGridCell(1, 0, 2, 3).GetHAlignedTo(masterPanel.GetGridCell(0, 0, 1, 6), EAlign::Near).GetReducedFromRight(18.f).GetPadded(-12.f);
+    const IRECT staticModPanel = masterPanel.GetGridCell(1, 0, 2, 3).GetHAlignedTo(masterPanel.GetGridCell(0, 0, 1, 6), EAlign::Near).GetReducedFromRight(19.f).GetPadded(-15.f);
     pGraphics->AttachControl(new DropdownListControl(staticModPanel.GetFromTop(40.f).GetHShifted(-4.f).GetPadded(-2.f), TABLITSA2_MIDI_MOD_NAMES, TABLITSA2_TEXT.WithSize(18.f)), kCtrlTagMidiModList, "MidiMods")->SetActionFunction(
       [this, pGraphics](IControl* pControl){
         const int selected{kMidiModKeys[dynamic_cast<DropdownListControl*>(pControl)->GetCurrentIndex()]};
+        // Get pointer to response curve control
+        // IControl* pCurveControl{ pGraphics->GetControlWithTag(kCtrlTagMidiControlCurve) };
         for (int i{}; i < sizeof(kMidiModKeys) / sizeof(EControlTags); ++i) {
-          IControl* pSlider{pGraphics->GetControlWithTag(kMidiModKeys[i])};
-          if(pSlider && kMidiModKeys[i] != selected)
+          IControl* pSlider{ pGraphics->GetControlWithTag(kMidiModKeys[i]) };
+          if (pSlider && kMidiModKeys[i] != selected)
             pSlider->Hide(true);
-          else if(pSlider)
+          else if (pSlider)
             pSlider->Hide(false);
         }
       }
     );
-    pGraphics->AttachControl(new ModSliderControl(staticModPanel.GetReducedFromTop(55.f).GetFromTop(30.f).GetHPadded(-15.f), EModulators::kVelocity, "Velocity", TABLITSA2_STYLE.WithShowLabel(false), false, EDirection::Horizontal), kCtrlTagMidiVelocityDepth, "MidiMods");
-    pGraphics->AttachControl(new ModSliderControl(staticModPanel.GetReducedFromTop(55.f).GetFromTop(30.f).GetHPadded(-15.f), EModulators::kAftertouch, "Aftertouch", TABLITSA2_STYLE.WithShowLabel(false), false), kCtrlTagMidiAftertouchDepth, "MidiMods")->Hide(true);
-    pGraphics->AttachControl(new ModSliderControl(staticModPanel.GetReducedFromTop(55.f).GetFromTop(30.f).GetHPadded(-15.f), EModulators::kKeytrack, "Keytrack", TABLITSA2_STYLE.WithShowLabel(false), false), kCtrlTagMidiKeytrackDepth, "MidiMods")->Hide(true);
-    pGraphics->AttachControl(new ModSliderControl(staticModPanel.GetReducedFromTop(55.f).GetFromTop(30.f).GetHPadded(-15.f), EModulators::kModWheel, "Modwheel", TABLITSA2_STYLE.WithShowLabel(false), false), kCtrlTagMidiModWheelDepth, "MidiMods")->Hide(true);
-    pGraphics->AttachControl(new ModSliderControl(staticModPanel.GetReducedFromTop(55.f).GetFromTop(30.f).GetHPadded(-15.f), EModulators::kRandom, "Trg. Rnd.", TABLITSA2_STYLE.WithShowLabel(false), false), kCtrlTagRandomDepth, "MidiMods")->Hide(true);
+    pGraphics->AttachControl(new ModSliderControl(staticModPanel.GetReducedFromTop(25.f).GetFromTop(30.f).GetHPadded(-8.f), EModulators::kVelocity, "Velocity", TABLITSA2_STYLE.WithShowLabel(false), false, EDirection::Horizontal), kCtrlTagMidiVelocityDepth, "MidiMods");
+    pGraphics->AttachControl(new ModSliderControl(staticModPanel.GetReducedFromTop(25.f).GetFromTop(30.f).GetHPadded(-8.f), EModulators::kAftertouch, "Aftertouch", TABLITSA2_STYLE.WithShowLabel(false), false, EDirection::Horizontal), kCtrlTagMidiAftertouchDepth, "MidiMods")->Hide(true);
+    pGraphics->AttachControl(new ModSliderControl(staticModPanel.GetReducedFromTop(25.f).GetFromTop(30.f).GetHPadded(-8.f), EModulators::kKeytrack, "Keytrack", TABLITSA2_STYLE.WithShowLabel(false), false, EDirection::Horizontal), kCtrlTagMidiKeytrackDepth, "MidiMods")->Hide(true);
+    pGraphics->AttachControl(new ModSliderControl(staticModPanel.GetReducedFromTop(25.f).GetFromTop(30.f).GetHPadded(-8.f), EModulators::kModWheel, "Modwheel", TABLITSA2_STYLE.WithShowLabel(false), false, EDirection::Horizontal), kCtrlTagMidiModWheelDepth, "MidiMods")->Hide(true);
+    pGraphics->AttachControl(new ModSliderControl(staticModPanel.GetReducedFromTop(25.f).GetFromTop(30.f).GetHPadded(-8.f), EModulators::kRandom, "Trg. Rnd.", TABLITSA2_STYLE.WithShowLabel(false), false, EDirection::Horizontal), kCtrlTagRandomDepth, "MidiMods")->Hide(true);
 
     // Curve Display
-    pGraphics->AttachControl(new Tablitsa2InteractivePlotControl(staticModPanel.GetFromBottom(50.f).GetPadded(-10.f), 50, kNoParameter, "Response Curve"), kNoTag, "MidiMods");
+    pGraphics->AttachControl(new Tablitsa2ParametricPlotControl(staticModPanel.GetFromBottom(90.f).GetPadded(-2.f), 50, kNoParameter, "Response Curve", TABLITSA2_STYLE.WithLabelText(TABLITSA2_TEXT.WithSize(15.f))), kNoTag, "MidiMods");
 
     /*pGraphics->AttachControl(new ModSliderControl(staticModPanel.GetReducedFromTop(50.f).GetPadded(5.f), EModulators::kMidiCC1, "CC1", TABLITSA2_STYLE.WithShowLabel(false), false), kCtrlTagMidiCC1Depth, "MidiMods")->Hide(true);
     pGraphics->AttachControl(new ModSliderControl(staticModPanel.GetReducedFromTop(50.f).GetPadded(5.f), EModulators::kMidiCC2, "CC2", TABLITSA2_STYLE.WithShowLabel(false), false), kCtrlTagMidiCC2Depth, "MidiMods")->Hide(true);
