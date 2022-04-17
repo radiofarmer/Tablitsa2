@@ -53,15 +53,17 @@ void ModSliderControl::SetValue(double value, int valIdx)
 
 void ModSliderControl::DrawWidget(IGraphics& g)
 {
-  Tablitsa2SliderControl::DrawWidget(g);
   float value = (float)GetValue(); // NB: Value is normalized to between 0. and 1.
   const IRECT handleBounds = (IsDisabled()) ? mTrackBounds.FracRect(mDirection, 0.f) : mTrackBounds.FracRect(mDirection, value);
-  const IRECT filledTrack = mDirection == EDirection::Vertical ? (IsDisabled()) ?
-    handleBounds : ((value >= 0.5f) ?
+  const IRECT filledTrack = mDirection == EDirection::Vertical ? (
+    IsDisabled()) ?
+    handleBounds :
+    ((value >= 0.5f) ?
       mTrackBounds.GetGridCell(0, 0, 2, 1).FracRect(mDirection, 2.f * (value - 0.5f)) :
       mTrackBounds.GetGridCell(1, 0, 2, 1).FracRect(mDirection, 2.f * (0.5 - value), true)) : // <- Vertical
     (IsDisabled()) ?
-    handleBounds : ((value >= 0.5f) ?
+    handleBounds :
+    ((value >= 0.5f) ?
       mTrackBounds.GetGridCell(0, 1, 1, 2).FracRect(mDirection, 2.f * (value - 0.5f)) :
       mTrackBounds.GetGridCell(0, 0, 1, 2).FracRect(mDirection, 2.f * (0.5 - value), true)); // <- Horizontal
 
@@ -93,7 +95,7 @@ void ModSliderControl::DrawTrack(IGraphics& g, const IRECT& filledArea)
 {
   const float extra = mHandleInsideTrack ? mHandleSize : 0.f;
   const IRECT adjustedTrackBounds = mDirection == EDirection::Vertical ? mTrackBounds.GetVPadded(extra) : mTrackBounds.GetHPadded(extra);
-  // Padd the filled area less, to account for the asymmetric rectangular handle
+  // Pad the filled area less, to account for the asymmetric rectangular handle
   const IRECT adjustedFillBounds = mDirection == EDirection::Vertical ? filledArea.GetVPadded(extra / 2.f) : filledArea.GetHPadded(extra / 2.f);
   const float cr = GetRoundedCornerRadius(mTrackBounds);
 

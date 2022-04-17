@@ -42,7 +42,7 @@ const IVStyle modKnobStyle{ TABLITSA2_STYLE.WithShowLabel(true).WithColors(knobC
 
 const IVStyle toggleStyle{ TABLITSA2_STYLE.WithDrawFrame(true).WithColor(EVColor::kFG, COLOR_TRANSPARENT).WithColor(EVColor::kHL, IColor(100, 220, 0, 180)).WithShowLabel(false) };
 
-const IVStyle sliderStyle{ TABLITSA2_STYLE.WithShowValue(true).WithLabelText(TABLITSA2_STYLE.labelText.WithSize(17.f)) };
+const IVStyle sliderStyle{ TABLITSA2_STYLE.WithShowValue(false) };
 
 const IVStyle modSliderStyle{ sliderStyle/*.WithShowValue(true)*/ };
 
