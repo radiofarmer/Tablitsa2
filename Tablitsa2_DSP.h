@@ -93,6 +93,14 @@ enum EModulations
   kNumModulations,
 };
 
+enum EOscModulators
+{
+  kSine = 0,
+  kOsc1,
+  kOsc2,
+  kNumOscModulators
+};
+
 // See Modulators.h for the enumeration of the number of modulators
 
 #define UNISON_CHORD_LIST "None", "8va", "M7", "D7", "D7 6/5", "D7 4/3", "m7", "ø7", "dim7"
@@ -804,6 +812,9 @@ public:
     FastLFO<T> mLFO2;
     Sequencer<T, kNumSeqSteps> mSequencer;
     ModulatorList<T, Envelope<T>, FastLFO<T>, Sequencer<T>, kNumModulators> mModulators;
+
+    FastSinOscillator<T> mModulatorOsc;
+    EOscModulators mOscModSource{ EOscModulators::kSine };
 
     // Status parameters
     bool mLFO1Restart{ false };
@@ -1616,6 +1627,11 @@ public:
         mParamsToSmooth[kModFilter2DriveSmoother] = value / (mFilter2Comb ? 1000. / mSampleRate * (double)COMB_MAX_DELAY : 100.);
         break;
       }
+      case kParamOsc1ModSource:
+      {
+        const int sourceID{ static_cast<int>(value) };
+        break;
+      }
       case kParamOsc1PM:
       {
         const bool phaseModOn = value > 0.5;
@@ -1632,10 +1648,12 @@ public:
           });
         break;
       }
-      case kParamPhaseModFreq:
+      case kParamOsc1PhaseModFreq:
+      case kParamOsc2PhaseModFreq:
         mParamsToSmooth[kModPhaseModFreqSmoother] = value;
         break;
-      case kParamPhaseModAmount:
+      case kParamOsc1PhaseModAmount:
+      case kParamOsc2PhaseModAmount:
         mParamsToSmooth[kModPhaseModAmtSmoother] = value / 100.;
         break;
       case kParamOsc1RM:
@@ -1654,10 +1672,12 @@ public:
           });
         break;
       }
-      case kParamRingModFreq:
+      case kParamOsc1RingModFreq:
+      case kParamOsc2RingModFreq:
         mParamsToSmooth[kModRingModFreqSmoother] = value;
         break;
-      case kParamRingModAmount:
+      case kParamOsc1RingModAmount:
+      case kParamOsc2RingModAmount:
         mParamsToSmooth[kModRingModAmtSmoother] = value / 100.;
         break;
       case kParamVoiceEffect1Param1: // Voice Effects
