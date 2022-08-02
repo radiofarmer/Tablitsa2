@@ -1637,10 +1637,33 @@ public:
         mParamsToSmooth[kModFilter2DriveSmoother] = value / (mFilter2Comb ? 1000. / mSampleRate * (double)COMB_MAX_DELAY : 100.);
         break;
       }
-      case kParamOsc1ModSource:
+      case kParamOsc1PhaseModSource:
       {
-        const int sourceID{ static_cast<int>(value) };
+        const int sourceID = static_cast<int>(value * kNumOscModulators) ;
+        ForEachVoice([sourceID](Voice& voice) {
+          });
         break;
+      }
+      case kParamOsc2PhaseModSource:
+      {
+        const int sourceID = static_cast<int>(value * kNumOscModulators);
+        ForEachVoice([sourceID](Voice& voice) {
+          });
+          break;
+      }
+      case kParamOsc1RingModSource:
+      {
+        const int sourceID = static_cast<int>(value * kNumOscModulators);
+        ForEachVoice([sourceID](Voice& voice) {
+          });
+          break;
+      }
+      case kParamOsc2RingModSource:
+      {
+        const int sourceID = static_cast<int>(value * kNumOscModulators);
+        ForEachVoice([sourceID](Voice& voice) {
+          });
+          break;
       }
       case kParamOsc1PM:
       {
