@@ -524,15 +524,19 @@ public:
         T ampEnvVal{ mModulators.GetList()[2][bufferIdx] }; // Calculated for easy access
 
         // Oscillator Parameters
-        // Osc1
+        
+        // Set modulation oscillator frequencies
         T osc1Freq = 440. * pow(2., pitch + mVModulations.GetList()[kVWavetable1PitchOffset][bufferIdx] / 12. + mMaster->mVibratoDepth * mMaster->mVibratoOsc.Process());
+        T osc2Freq = 440. * pow(2., pitch + mVModulations.GetList()[kVWavetable2PitchOffset][bufferIdx] / 12. + mMaster->mVibratoDepth * mMaster->mVibratoOsc.Process());
+        mOsc1RingMod_Sine.SetFreqCPS(osc1Freq * ringModFreqFact1);
+        mOsc2RingMod_Sine.SetFreqCPS(osc2Freq * ringModFreqFact2);
+        // Osc1
         mOsc1.SetWtPosition(1. - mVModulations.GetList()[kVWavetable1Position][bufferIdx]); // Wavetable 1 Position
         mOsc1.SetWtBend(mVModulations.GetList()[kVWavetable1Bend][bufferIdx]); // Wavetable 1 Bend
         mOsc1.SetFormant(mVModulations.GetList()[kVWavetable1Formant][bufferIdx], mOsc1FormantOn);
         T osc1Amp = mVModulations.GetList()[kVWavetable1Amp][bufferIdx];
 
         // Osc2
-        T osc2Freq = 440. * pow(2., pitch + mVModulations.GetList()[kVWavetable2PitchOffset][bufferIdx] / 12. + mMaster->mVibratoDepth * mMaster->mVibratoOsc.Process());
         mOsc2.SetWtPosition(1. - mVModulations.GetList()[kVWavetable2Position][bufferIdx]); // Wavetable 2 Position
         mOsc2.SetWtBend(mVModulations.GetList()[kVWavetable2Bend][bufferIdx]); // Wavetable 2 Bend
         mOsc2.SetFormant(mVModulations.GetList()[kVWavetable2Formant][bufferIdx], mOsc2FormantOn);
@@ -550,12 +554,15 @@ public:
         // Phase and Ring Modulators (freq. only set once per block)
         mOsc1.SetPhaseModulation(mVModulations.GetList()[kVOsc1PhaseModAmt][bufferIdx], osc1Freq * phaseModFreqFact1);
         mOsc2.SetPhaseModulation(mVModulations.GetList()[kVOsc2PhaseModAmt][bufferIdx], osc2Freq * phaseModFreqFact2);
-        mOsc1.SetRingModulation(mVModulations.GetList()[kVOsc1RingModAmt][bufferIdx], osc1Freq * ringModFreqFact1);
-        mOsc2.SetRingModulation(mVModulations.GetList()[kVOsc2RingModAmt][bufferIdx], osc2Freq * ringModFreqFact2);
+        mOsc1.SetRingModulation(mVModulations.GetList()[kVOsc1RingModAmt][bufferIdx]);
+        mOsc2.SetRingModulation(mVModulations.GetList()[kVOsc2RingModAmt][bufferIdx]);
 
         // Signal Processing
 #ifdef VECTOR
-        // Oscillators
+        // Modulation Oscillators
+        mOsc1RingMod_Sine.Process_Vector();
+        mOsc2RingMod_Sine.Process_Vector();
+        // Carrier Oscillators
         Vec4d osc1_v = mOsc1.ProcessMultiple(osc1Freq) * osc1Amp;// * ampEnvVal;
         Vec4d osc2_v = mOsc2.ProcessMultiple(osc2Freq) * osc2Amp;// * ampEnvVal;
         osc1_v.store(mOscOutputs.GetList()[0] + bufferIdx);
@@ -633,6 +640,8 @@ public:
     {
       mOsc1.SetSampleRate(sampleRate);
       mOsc2.SetSampleRate(sampleRate);
+      mOsc1RingMod_Sine.SetSampleRate(sampleRate);
+      mOsc2RingMod_Sine.SetSampleRate(sampleRate);
       mAmpEnv.SetSampleRate(sampleRate);
       mEnv1.SetSampleRate(sampleRate);
       mEnv2.SetSampleRate(sampleRate);
@@ -782,6 +791,28 @@ public:
       SetSampleRateAndBlockSize(mMaster->mSampleRate, mMaster->mBlockSize); // Set oversampled sample rate, since this isn't accounted for in effect constructors
     }
 
+    void SetOscillatorRingModSource(const int osc, const int src)
+    {
+      WavetableOscillator<T>* pCarrier;
+      VectorOscillator<T>* pSineModulator;
+
+      if (osc == 0) {
+        pCarrier = &mOsc1;
+        pSineModulator = &mOsc1RingMod_Sine;
+      }
+      else {
+        pCarrier = &mOsc2;
+        pSineModulator = &mOsc2RingMod_Sine;
+      }
+
+      if (src == EOscModulators::kSine)
+        pCarrier->mRingModulator = pSineModulator;
+      else if (src == EOscModulators::kOsc1)
+        pCarrier->mRingModulator = &mOsc1;
+      else if (src == EOscModulators::kOsc2)
+        pCarrier->mRingModulator = &mOsc2;
+    }
+
     /* Update polyphonic modulation depths */
     void UpdateVoiceParam(int voiceParam, int modIdx, double value)
     {
@@ -819,7 +850,8 @@ public:
     Sequencer<T, kNumSeqSteps> mSequencer;
     ModulatorList<T, Envelope<T>, FastLFO<T>, Sequencer<T>, kNumModulators> mModulators;
 
-    FastSinOscillator<T> mModulatorOsc;
+    VectorOscillator<T> mOsc1RingMod_Sine;
+    VectorOscillator<T> mOsc2RingMod_Sine;
     EOscModulators mOscModSource{ EOscModulators::kSine };
 
     // Status parameters
@@ -1653,8 +1685,9 @@ public:
       }
       case kParamOsc1RingModSource:
       {
-        const int sourceID = static_cast<int>(value * kNumOscModulators);
+        const int sourceID = static_cast<int>(value);
         ForEachVoice([sourceID](Voice& voice) {
+          voice.SetOscillatorRingModSource(0, sourceID);
           });
           break;
       }
@@ -1662,6 +1695,7 @@ public:
       {
         const int sourceID = static_cast<int>(value * kNumOscModulators);
         ForEachVoice([sourceID](Voice& voice) {
+          voice.SetOscillatorRingModSource(1, sourceID);
           });
           break;
       }

@@ -25,9 +25,8 @@
 #define OUTPUT_SIZE VECTOR_SIZE
 #endif
 
-BEGIN_IPLUG_NAMESPACE
 template<typename T>
-class VectorOscillator final : public FastSinOscillator<T>
+class VectorOscillator : public iplug::FastSinOscillator<T>
 {
   union tabfudge
   {
@@ -68,7 +67,18 @@ public:
     tf.d = phase + (UNITBIT32 * tableSize - UNITBIT32); // Remove the offset we introduced at the start of UNITBIT32.
     tf.i[HIOFFSET] = normhipart2;
     IOscillator<T>::mPhase = tf.d - UNITBIT32 * tableSize;
+    StoreLastOutput_Vector(output);
     return output;
+  }
+
+  void StoreLastOutput_Vector(const Vec4d output)
+  {
+    output.store(mLastOutput_Vector);
+  }
+
+  Vec4d __vectorcall GetLastOutput_Vector()
+  {
+    return Vec4d().load(mLastOutput_Vector);
   }
 
   const bool SyncSignal()
@@ -89,12 +99,12 @@ public:
 private:
   double mPhaseOffset{ 0. };
   double mPrevPhase{ 1. };
+  double mLastOutput_Vector[4]{ 0. };
 } ALIGNED(8);
 
-END_IPLUG_NAMESPACE
 
 template <typename T>
-class WavetableOscillator final : public iplug::IOscillator<T>
+class WavetableOscillator : public VectorOscillator<T>
 {
   union tabfudge
   {
@@ -106,7 +116,7 @@ class WavetableOscillator final : public iplug::IOscillator<T>
 
 public:
   WavetableOscillator(const int id, const char* tableName, const double startPhase = 0., const double startFreq = 1.) :
-    mID(id), IOscillator<T>(startPhase), mPrevFreq(static_cast<int>(startFreq))
+    mID(id), VectorOscillator<T>(startPhase), mPrevFreq(static_cast<int>(startFreq))
   {
     WtFile table(tableName);
     LoadNewTable(table);
@@ -115,7 +125,7 @@ public:
   }
 
   WavetableOscillator(const int id, const WtFile& table, double startPhase = 0., double startFreq = 1.)
-    : mID(id), IOscillator<T>(startPhase, startFreq), mPrevFreq(static_cast<int>(startFreq))
+    : mID(id), VectorOscillator<T>(startPhase, startFreq), mPrevFreq(static_cast<int>(startFreq))
   {
     LoadNewTable(table);
     SetWavetable(mLoadedTable);
@@ -127,7 +137,6 @@ public:
     mSampleRate = sampleRate * mProcessOS;
 //    mNyquist = sampleRate / 2.;
     mPhaseModulator.SetSampleRate(mSampleRate);
-    mRingModulator.SetSampleRate(mSampleRate);
   }
 
   /* Load a new wavetable as a static variable */
@@ -424,6 +433,9 @@ public:
     }
     mixed = mul_add(mixed * (RingMod() - 1.), mRM * mRingModAmt, mixed);
 
+    // Save last output in an array (for serving as a modulator)
+    StoreLastOutput_Vector(mixed);
+
     return mixed;
   }
 
@@ -451,12 +463,12 @@ public:
 
   inline double RingMod()
   {
-    return mRingModulator.Process();
+    return mRingModulator->mLastOutput;
   }
 #else
   inline Vec4d __vectorcall RingMod()
   {
-    return mRingModulator.Process_Vector();
+    return mRingModulator->GetLastOutput_Vector();
   }
 
   // TODO: use enable_if to choose between vector lengths
@@ -524,10 +536,9 @@ public:
     else
       mRM = 0.;
   }
-  inline void SetRingModulation(double amt, double freqCPS)
+  inline void SetRingModulation(double amt)
   {
     mRingModAmt = amt;
-    mRingModulator.SetFreqCPS(freqCPS);
   }
 
   void ReloadLUT()
@@ -545,7 +556,7 @@ public:
   {
     IOscillator<T>::Reset();
     mPhaseModulator.SetPhase(0.);
-    mRingModulator.SetPhase(0.);
+    mRingModulator->SetPhase(0.);
     mFormantModulator.SetPhase(0.);
     mCycle = 0;
   }
@@ -623,12 +634,12 @@ public:
   Wavetable<T>* mLoadedTable{ nullptr };
 #ifndef VECTOR
   iplug::FastSinOscillator<T> mPhaseModulator;
-  iplug::FastSinOscillator<T> mRingModulator{ 0.5 }; // Offset start phase by half a cycle
+  iplug::FastSinOscillator<T>* mRingModulator{nullptr};
   iplug::FastSinOscillator<T> mFormantModulator;
 #else
-  iplug::VectorOscillator<T> mPhaseModulator;
-  iplug::VectorOscillator<T> mRingModulator;
-  iplug::VectorOscillator<T> mFormantModulator;
+  VectorOscillator<T> mPhaseModulator;
+  VectorOscillator<T>* mRingModulator{ nullptr };
+  VectorOscillator<T> mFormantModulator;
 #endif
 
 #ifdef POLYPHASE_FILTER
