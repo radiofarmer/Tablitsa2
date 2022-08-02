@@ -74,10 +74,14 @@ enum EModulations
   kModFilter2CombFFSmoother,
   kModFilter2CombFBSmoother,
   kModFilter2CombDelaySmoother,
-  kModPhaseModFreqSmoother,
-  kModPhaseModAmtSmoother,
-  kModRingModFreqSmoother,
-  kModRingModAmtSmoother,
+  kModOsc1PhaseModFreqSmoother,
+  kModOsc2PhaseModFreqSmoother,
+  kModOsc1PhaseModAmtSmoother,
+  kModOsc2PhaseModAmtSmoother,
+  kModOsc1RingModFreqSmoother,
+  kModOsc2RingModFreqSmoother,
+  kModOsc1RingModAmtSmoother,
+  kModOsc2RingModAmtSmoother,
   kModVoiceEffect1Param1Smoother,
   kModVoiceEffect1Param2Smoother,
   kModVoiceEffect1Param3Smoother,
@@ -507,8 +511,10 @@ public:
       mVoiceModParams.ProcessBlock(&inputs[kModPanSmoother], mModulators.GetList(), mVModulations.GetList(), nFrames);
 #endif
 
-      const double phaseModFreqFact = pow(2., mVModulations.GetList()[kVPhaseModFreq][0] / 12.);
-      const double ringModFreqFact = pow(2., mVModulations.GetList()[kVRingModFreq][0] / 12.);
+      const double phaseModFreqFact1 = pow(2., mVModulations.GetList()[kVOsc1PhaseModFreq][0] / 12.);
+      const double ringModFreqFact1 = pow(2., mVModulations.GetList()[kVOsc1RingModFreq][0] / 12.);
+      const double phaseModFreqFact2 = pow(2., mVModulations.GetList()[kVOsc2PhaseModFreq][0] / 12.);
+      const double ringModFreqFact2 = pow(2., mVModulations.GetList()[kVOsc2RingModFreq][0] / 12.);
 
       // make sound output for each output channel
       for (auto i = startIdx; i < startIdx + nFrames; i += FRAME_INTERVAL)
@@ -542,10 +548,10 @@ public:
         mFilters.at(1)->SetDrive(mVModulations.GetList()[kVFilter2Drive][bufferIdx]); // Filter 2 Drive
 
         // Phase and Ring Modulators (freq. only set once per block)
-        mOsc1.SetPhaseModulation(mVModulations.GetList()[kVPhaseModAmt][bufferIdx], osc1Freq * phaseModFreqFact);
-        mOsc2.SetPhaseModulation(mVModulations.GetList()[kVPhaseModAmt][bufferIdx], osc2Freq * phaseModFreqFact);
-        mOsc1.SetRingModulation(mVModulations.GetList()[kVRingModAmt][bufferIdx], osc1Freq * ringModFreqFact);
-        mOsc2.SetRingModulation(mVModulations.GetList()[kVRingModAmt][bufferIdx], osc2Freq * ringModFreqFact);
+        mOsc1.SetPhaseModulation(mVModulations.GetList()[kVOsc1PhaseModAmt][bufferIdx], osc1Freq * phaseModFreqFact1);
+        mOsc2.SetPhaseModulation(mVModulations.GetList()[kVOsc2PhaseModAmt][bufferIdx], osc2Freq * phaseModFreqFact2);
+        mOsc1.SetRingModulation(mVModulations.GetList()[kVOsc1RingModAmt][bufferIdx], osc1Freq * ringModFreqFact1);
+        mOsc2.SetRingModulation(mVModulations.GetList()[kVOsc2RingModAmt][bufferIdx], osc2Freq * ringModFreqFact2);
 
         // Signal Processing
 #ifdef VECTOR
@@ -888,10 +894,14 @@ public:
       new ParameterModulator<kNumModulators>(0., 1., "Flt2 Comb FF"),
       new ParameterModulator<kNumModulators>(0., 1., "Flt2 Comb FB"),
       new ParameterModulator<kNumModulators>(0., 20., "Flt2 Comb Delay"),
-      new ParameterModulator<kNumModulators>(-24., 24., "Phase Mod Freq"),
-      new ParameterModulator<kNumModulators>(0., 1., "Phase Mod Depth"),
-      new ParameterModulator<kNumModulators>(-24., 24., "Ring Mod Freq"),
-      new ParameterModulator<kNumModulators>(0., 1., "Ring Mod Depth"),
+      new ParameterModulator<kNumModulators>(-24., 24., "Osc 1 Phase Mod Freq"),
+      new ParameterModulator<kNumModulators>(-24., 24., "Osc 2 Phase Mod Freq"),
+      new ParameterModulator<kNumModulators>(0., 1., "Osc 1 Phase Mod Depth"),
+      new ParameterModulator<kNumModulators>(0., 1., "Osc 2 Phase Mod Depth"),
+      new ParameterModulator<kNumModulators>(-24., 24., "Osc 1 Ring Mod Freq"),
+      new ParameterModulator<kNumModulators>(-24., 24., "Osc 2 Ring Mod Freq"),
+      new ParameterModulator<kNumModulators>(0., 1., "Osc 1 Ring Mod Depth"),
+      new ParameterModulator<kNumModulators>(0., 1., "Osc 2 Ring Mod Depth"),
       new ParameterModulator<kNumModulators>(0., 1., "Effect 1 Param 1"),
       new ParameterModulator<kNumModulators>(0., 1., "Effect 1 Param 2"),
       new ParameterModulator<kNumModulators>(0., 1., "Effect 1 Param 3"),
@@ -1649,12 +1659,16 @@ public:
         break;
       }
       case kParamOsc1PhaseModFreq:
+        mParamsToSmooth[kModOsc1PhaseModFreqSmoother] = value;
+        break;
       case kParamOsc2PhaseModFreq:
-        mParamsToSmooth[kModPhaseModFreqSmoother] = value;
+        mParamsToSmooth[kModOsc2PhaseModFreqSmoother] = value;
         break;
       case kParamOsc1PhaseModAmount:
+        mParamsToSmooth[kModOsc1PhaseModAmtSmoother] = value / 100.;
+        break;
       case kParamOsc2PhaseModAmount:
-        mParamsToSmooth[kModPhaseModAmtSmoother] = value / 100.;
+        mParamsToSmooth[kModOsc2PhaseModAmtSmoother] = value / 100.;
         break;
       case kParamOsc1RM:
       {
@@ -1673,12 +1687,16 @@ public:
         break;
       }
       case kParamOsc1RingModFreq:
+        mParamsToSmooth[kModOsc1RingModFreqSmoother] = value;
+        break;
       case kParamOsc2RingModFreq:
-        mParamsToSmooth[kModRingModFreqSmoother] = value;
+        mParamsToSmooth[kModOsc2RingModFreqSmoother] = value;
         break;
       case kParamOsc1RingModAmount:
+        mParamsToSmooth[kModOsc1RingModAmtSmoother] = value / 100.;
+        break;
       case kParamOsc2RingModAmount:
-        mParamsToSmooth[kModRingModAmtSmoother] = value / 100.;
+        mParamsToSmooth[kModOsc2RingModAmtSmoother] = value / 100.;
         break;
       case kParamVoiceEffect1Param1: // Voice Effects
         mParamsToSmooth[kModVoiceEffect1Param1Smoother] = value;
