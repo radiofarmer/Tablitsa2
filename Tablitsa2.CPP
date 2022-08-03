@@ -116,20 +116,28 @@ Tablitsa2::Tablitsa2(const InstanceInfo& info)
   // Wavetable 2 Amp
   GetParam(kParamWavetable2Amp)->InitDouble("WT2 Amp", 0.5, 0., 1., 0.01);
 
-  // Modulation Oscillator
+  // Oscillator Modulation
   GetParam(kParamOscModulator)->InitEnum("Oscillator Modulation Mode", 0, { "Phase", "Ring" });
+  GetParam(kParamOsc1PhaseModSource)->InitEnum("Oscillator 1 Modulation Source", 0, { "Sine", "Osc1", "Osc2" });
+  GetParam(kParamOsc2PhaseModSource)->InitEnum("Oscillator 2 Modulation Source", 0, { "Sine", "Osc1", "Osc2" });
+  GetParam(kParamOsc1RingModSource)->InitEnum("Oscillator 1 Modulation Source", 0, { "Sine", "Osc1", "Osc2" });
+  GetParam(kParamOsc2RingModSource)->InitEnum("Oscillator 2 Modulation Source", 0, { "Sine", "Osc1", "Osc2" });
   GetParam(kParamOsc1PM)->InitBool("Osc1 Phase Modulation", false);
   GetParam(kParamOsc1RM)->InitBool("Osc1 Ring Modulation", false);
   GetParam(kParamOsc2PM)->InitBool("Osc2 Phase Modulation", false);
   GetParam(kParamOsc2RM)->InitBool("Osc2 Ring Modulation", false);
   // Phase Mod Freq
-  GetParam(kParamPhaseModFreq)->InitDouble("Phase Modulator Freq", 0., -24., 24., 0.01);
+  GetParam(kParamOsc1PhaseModFreq)->InitDouble("Osc1 Phase Modulator Freq", 0., -24., 24., 0.01);
+  GetParam(kParamOsc2PhaseModFreq)->InitDouble("Osc2 Phase Modulator Freq", 0., -24., 24., 0.01);
   // Phase Mod Amount
-  GetParam(kParamPhaseModAmount)->InitPercentage("Phase Modulator Amount", 25., 0., 100.);
+  GetParam(kParamOsc1PhaseModAmount)->InitPercentage("Phase Modulator Amount", 25., 0., 100.);
+  GetParam(kParamOsc2PhaseModAmount)->InitPercentage("Phase Modulator Amount", 25., 0., 100.);
   // Ring Mod Freq
-  GetParam(kParamRingModFreq)->InitDouble("Ring Modulator Freq", 0., -24., 24., 0.01);
+  GetParam(kParamOsc1RingModFreq)->InitDouble("Ring Modulator Freq", 0., -24., 24., 0.01);
+  GetParam(kParamOsc2RingModFreq)->InitDouble("Ring Modulator Freq", 0., -24., 24., 0.01);
   // Ring Mod Amount
-  GetParam(kParamRingModAmount)->InitPercentage("Ring Modulator Amount", 25., 0., 100.);
+  GetParam(kParamOsc1RingModAmount)->InitPercentage("Ring Modulator Amount", 25., 0., 100.);
+  GetParam(kParamOsc2RingModAmount)->InitPercentage("Ring Modulator Amount", 25., 0., 100.);
 
   // Filter 1
   GetParam(kParamFilter1Type)->InitEnum("Filter 1 Type", kNoFilter, { FILTER_TYPE_LIST });
@@ -554,29 +562,50 @@ Tablitsa2::Tablitsa2(const InstanceInfo& info)
     /* Waveform Modulation Panel */
     const IRECT lowerPanel = globalControls.GetReducedFromTop(globalControls.H() * 0.5f).GetPadded(-10.f).GetReducedFromRight(250.f);
     const IRECT oscModPanel = lowerPanel.GetGridCell(0, 0, 3, 3);
-    pGraphics->AttachControl(new ICaptionControl(oscModPanel.GetVPadded(-10.f).GetGridCell(0, 0, 3, 3).GetVShifted(10.f), kParamOscModulator, dropdownText), kNoTag, "OscMod")->SetActionFunction(
+    pGraphics->AttachControl(new ICaptionControl(oscModPanel.GetVPadded(-10.f).GetGridCell(0, 0, 3, 5).GetVShifted(4.f).GetHShifted(6.f), kParamOscModulator, dropdownText), kCtrlTagOscModTypeSelector, "OscMod")->SetActionFunction(
       [pGraphics](IControl* pControl) {
+        // Index variables indicating which target oscillator is active and which type of modulation (phase or ring) is active
+        int targOsc = pGraphics->GetControlWithTag(kCtrlTagOscModTargetSelector)->GetValue(); // if there are more than two oscillators, multiply this by (n_osc - 1)
         bool phaseMod = pControl->GetValue() < 0.5;
-        // Update parameter index
-        pGraphics->GetControlWithTag(kCtrlTagOscModFreq)->SetParamIdx(phaseMod ? kParamPhaseModFreq : kParamRingModFreq);
-        pGraphics->GetControlWithTag(kCtrlTagOscModAmt)->SetParamIdx(phaseMod ? kParamPhaseModAmount : kParamRingModAmount);
-        // Update modulation index
-        dynamic_cast<Tablitsa2IVModKnobControl*>(pGraphics->GetControlWithTag(kCtrlTagOscModFreq))->GetModulationFrom(phaseMod ? kVPhaseModFreq : kVRingModFreq);
-        dynamic_cast<Tablitsa2IVModKnobControl*>(pGraphics->GetControlWithTag(kCtrlTagOscModAmt))->GetModulationFrom(phaseMod ? kVPhaseModAmt : kVPhaseModAmt);
-        IControl* pOsc1Switch = pGraphics->GetControlWithTag(kCtrlTagOsc1ModSwitch);
-        pOsc1Switch->SetParamIdx(phaseMod ? kParamOsc1PM : kParamOsc1RM);
-        IControl* pOsc2Switch = pGraphics->GetControlWithTag(kCtrlTagOsc2ModSwitch);
-        pOsc2Switch->SetParamIdx(phaseMod ? kParamOsc2PM : kParamOsc2RM);
+        // Update parameter indices
+        IControl* pOscModSwitch = pGraphics->GetControlWithTag(kCtrlTagOscModSwitch);
+        pOscModSwitch->SetParamIdx(phaseMod ? kParamOsc1PM + targOsc : kParamOsc1RM + targOsc);
+        pGraphics->GetControlWithTag(kCtrlTagOscModSource)->SetParamIdx((phaseMod ? kParamOsc1PhaseModSource : kParamOsc1RingModSource) + targOsc); // Modulation source
+        pGraphics->GetControlWithTag(kCtrlTagOscModFreq)->SetParamIdx(phaseMod ? kParamOsc1PhaseModFreq + targOsc : kParamOsc1RingModFreq + targOsc); // Pitch
+        pGraphics->GetControlWithTag(kCtrlTagOscModAmt)->SetParamIdx(phaseMod ? kParamOsc1PhaseModAmount + targOsc : kParamOsc1RingModAmount + targOsc); // Depth
+        // Update parameter-modulator indices for source, amount/depth, and pitch controls
+        dynamic_cast<Tablitsa2IVModKnobControl*>(pGraphics->GetControlWithTag(kCtrlTagOscModFreq))->GetModulationFrom(phaseMod ? kVOsc1PhaseModFreq + targOsc : kVOsc1RingModFreq + targOsc);
+        dynamic_cast<Tablitsa2IVModKnobControl*>(pGraphics->GetControlWithTag(kCtrlTagOscModAmt))->GetModulationFrom(phaseMod ? kVOsc1PhaseModAmt + targOsc : kVOsc1PhaseModAmt + targOsc);
         // Update controls
         pControl->GetDelegate()->SendCurrentParamValuesFromDelegate();
-        pOsc2Switch->SetDirty(false);
-        pOsc1Switch->SetDirty(false);
+        pOscModSwitch->SetDirty(false);
       });
-    pGraphics->AttachControl(new IVToggleControl(oscModPanel.GetVPadded(-20.f).GetGridCell(1, 0, 3, 3).GetMidHPadded(35.f), kParamOsc1PM, "Osc1", toggleStyle, "Osc 1 OFF", "Osc 1 ON"), kCtrlTagOsc1ModSwitch, "OscMod");
-    pGraphics->AttachControl(new IVToggleControl(oscModPanel.GetVPadded(-20.f).GetGridCell(2, 0, 3, 3).GetMidHPadded(35.f), kParamOsc2PM, "Osc1", toggleStyle, "Osc 2 OFF", "Osc 2 ON"), kCtrlTagOsc2ModSwitch, "OscMod");
-    pGraphics->AttachControl(new IVTabSwitchControl(oscModPanel.GetVPadded(-20.f).GetGridCell(0, 1, 1, 4).GetHPadded(-20.f), kNoParameter, {"Sine", "Osc1", "Osc2"}, "Source", TABLITSA2_STYLE.WithLabelText(TABLITSA2_TEXT.WithSize(15.f)), EVShape::Rectangle, EDirection::Vertical), kCtrlTagOscModSource, "OscMod");
-    pGraphics->AttachControl(new Tablitsa2IVModKnobControl(oscModPanel.GetVPadded(-10.f).GetGridCell(0, 3, 1, 4).GetCentredInside(dialSize), kParamPhaseModFreq, kVPhaseModFreq, "Pitch"), kCtrlTagOscModFreq, "OscMod");
-    pGraphics->AttachControl(new Tablitsa2IVModKnobControl(oscModPanel.GetGridCell(0, 2, 1, 4).GetCentredInside(dialSize), kParamPhaseModAmount, kVPhaseModAmt, "Amount"), kCtrlTagOscModAmt, "OscMod");
+    pGraphics->AttachControl(new IVTabSwitchControl(oscModPanel.GetVPadded(-20.f).GetGridCell(0, 0, 1, 5).GetReducedFromTop(25.f).GetHPadded(-10.f).GetHShifted(6.f), kNoParameter, { "Osc1", "Osc2" }, "", TABLITSA2_STYLE.WithShowLabel(false), EVShape::Rectangle, EDirection::Vertical), kCtrlTagOscModTargetSelector, "OscMod")->SetActionFunction(
+      [pGraphics](IControl* pControl) {
+        // This should mostly be the same as the action function for the modulation type selector dropdown list (see above)
+        //
+        // Index variables indicating which target oscillator is active and which type of modulation (phase or ring) is active
+        int targOsc = pControl->GetValue(); // if there are more than two oscillators, multiply this by (n_osc - 1)
+        bool phaseMod = pGraphics->GetControlWithTag(kCtrlTagOscModTypeSelector)->GetValue() < 0.5;
+        // Update parameter indices
+        IControl* pOscModSwitch = pGraphics->GetControlWithTag(kCtrlTagOscModSwitch);
+        pOscModSwitch->SetParamIdx(phaseMod ? kParamOsc1PM + targOsc : kParamOsc1RM + targOsc);
+        pGraphics->GetControlWithTag(kCtrlTagOscModSource)->SetParamIdx((phaseMod ? kParamOsc1PhaseModSource : kParamOsc1RingModSource) + targOsc); // Modulation source
+        pGraphics->GetControlWithTag(kCtrlTagOscModFreq)->SetParamIdx(phaseMod ? kParamOsc1PhaseModFreq + targOsc : kParamOsc1RingModFreq + targOsc); // Pitch
+        pGraphics->GetControlWithTag(kCtrlTagOscModAmt)->SetParamIdx(phaseMod ? kParamOsc1PhaseModAmount + targOsc : kParamOsc1RingModAmount + targOsc); // Depth
+        // Update parameter-modulator indices for source, amount/depth, and pitch controls
+        dynamic_cast<Tablitsa2IVModKnobControl*>(pGraphics->GetControlWithTag(kCtrlTagOscModFreq))->GetModulationFrom(phaseMod ? kVOsc1PhaseModFreq + targOsc : kVOsc1RingModFreq + targOsc);
+        dynamic_cast<Tablitsa2IVModKnobControl*>(pGraphics->GetControlWithTag(kCtrlTagOscModAmt))->GetModulationFrom(phaseMod ? kVOsc1PhaseModAmt + targOsc : kVOsc1PhaseModAmt + targOsc);
+        // Update controls
+        pControl->GetDelegate()->SendCurrentParamValuesFromDelegate();
+        pOscModSwitch->SetDirty(false);
+      }
+    );
+    pGraphics->AttachControl(new IVToggleControl(oscModPanel.GetVPadded(-20.f).GetGridCell(1, 2, 3, 5).GetHPadded(-20.f), kParamOsc1PM, "On/Off", toggleStyle, "OFF", "ON"), kCtrlTagOscModSwitch, "OscMod");
+    pGraphics->AttachControl(new ITextControl(oscModPanel.GetVPadded(-10.f).GetGridCell(0, 1, 3, 5).GetVShifted(4.f).GetHShifted(6.f), "Mod Source", TABLITSA2_TEXT), kNoTag, "OscMod");
+    pGraphics->AttachControl(new ICaptionControl(oscModPanel.GetVPadded(-24.f).GetGridCell(0, 1, 1, 5).GetHPadded(-10.f).GetHShifted(4.f), kParamOsc1PhaseModSource, dropdownText), kCtrlTagOscModSource, "OscMod");
+    pGraphics->AttachControl(new Tablitsa2IVModKnobControl(oscModPanel.GetVPadded(-10.f).GetGridCell(0, 4, 1, 5).GetCentredInside(dialSize), kParamOsc1PhaseModFreq, kVOsc1PhaseModFreq, "Pitch"), kCtrlTagOscModFreq, "OscMod");
+    pGraphics->AttachControl(new Tablitsa2IVModKnobControl(oscModPanel.GetGridCell(0, 3, 1, 5).GetCentredInside(dialSize), kParamOsc1PhaseModAmount, kVOsc1PhaseModAmt, "Amount"), kCtrlTagOscModAmt, "OscMod");
     pGraphics->AttachControl(new Tablitsa2VGroupControl(oscModPanel.GetPadded(modulePad[0], modulePad[1], modulePad[2], modulePad[3]), "Oscillator Modulation"));
     
     /* Filter Panel */
