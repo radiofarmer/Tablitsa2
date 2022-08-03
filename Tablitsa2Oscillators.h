@@ -136,7 +136,6 @@ public:
   {
     mSampleRate = sampleRate * mProcessOS;
 //    mNyquist = sampleRate / 2.;
-    mPhaseModulator.SetSampleRate(mSampleRate);
   }
 
   /* Load a new wavetable as a static variable */
@@ -213,7 +212,6 @@ public:
 
     // Set Formant
     const double freq_adj{ mFormantOn ? freqCPS * mFormant : freqCPS };
-    mFormantModulator.SetFreqCPS(freqCPS);
     IOscillator<T>::SetFreqCPS(freq_adj);
 
     if (std::abs(mPrevFreq - freq_adj) > 0.1)
@@ -418,23 +416,15 @@ public:
     const int normhipart2 = tf.i[HIOFFSET];
     tf.d = phase + (UNITBIT32 * mTableSize - UNITBIT32); // Remove the offset we introduced at the start of UNITBIT32.
     tf.i[HIOFFSET] = normhipart2; // Reset the upper 32 bits
-    if (!mFormantOn || !mFormantModulator.SyncSignal())
-      IOscillator<T>::mPhase = (tf.d - UNITBIT32 * mTableSize);
-    else
-      Reset();
     mCycle = (mCycle + (mPhase < mPrevPhase)) % mWT->mCyclesPerLevel;
+    IOscillator<T>::mPhase = (tf.d - UNITBIT32 * mTableSize);
 
     // Mix wavtables and add ring and formant modulation
     Vec4d mixed = mul_add(tb1 - tb0, 1 - tableOffset, tb0);
-    if (mFormantOn)
-    {
-      Vec4d formantMod = mFormantModulator.Process_Vector();
-      mixed *= formantMod;
-    }
-    mixed = mul_add(mixed * (RingMod() - 1.), mRM * mRingModAmt, mixed);
+    mixed = mul_add(mixed * (RingMod() - 1.), mRingModAmt, mixed);
 
     // Save last output in an array (for serving as a modulator)
-    StoreLastOutput_Vector(mixed);
+    VectorOscillator<T>::StoreLastOutput_Vector(mixed);
 
     return mixed;
   }
@@ -458,7 +448,7 @@ public:
 #ifndef VECTOR
   inline double PhaseMod()
   {
-    return mPM * mPhaseModAmt * mPhaseModulator.Process() * mCyclesPerLevelRecip;
+    return mPM * mPhaseModAmt->mLastOutput * mCyclesPerLevelRecip;
   }
 
   inline double RingMod()
@@ -468,13 +458,18 @@ public:
 #else
   inline Vec4d __vectorcall RingMod()
   {
-    return mRingModulator->GetLastOutput_Vector();
+    if (mRM)
+      return mRingModulator->GetLastOutput_Vector();
+    else
+      return Vec4d(1.);
   }
 
-  // TODO: use enable_if to choose between vector lengths
   inline Vec4d __vectorcall PhaseMod()
   {
-    return mPM * mPhaseModAmt * mPhaseModulator.Process_Vector() * mCyclesPerLevelRecip;
+    if (mPM)
+      return mPhaseModulator->GetLastOutput_Vector() * mPhaseModAmt;
+    else
+      return Vec4d(0.);
   }
 #endif
   inline double* GetWtPosition()
@@ -518,23 +513,16 @@ public:
 
   inline void SetPhaseModulation(bool on)
   {
-    if (on)
-      mPM = 1.;
-    else
-      mPM = 0.;
+    mPM = on;
   }
-  inline void SetPhaseModulation(double amt, double freqCPS)
+  inline void SetPhaseModulation(double amt)
   {
     mPhaseModAmt = amt;
-    mPhaseModulator.SetFreqCPS(freqCPS);
   }
 
   inline void SetRingModulation(bool on)
   {
-    if (on)
-      mRM = 1.;
-    else
-      mRM = 0.;
+    mRM = on;
   }
   inline void SetRingModulation(double amt)
   {
@@ -555,9 +543,6 @@ public:
   void Reset()
   {
     IOscillator<T>::Reset();
-    mPhaseModulator.SetPhase(0.);
-    mRingModulator->SetPhase(0.);
-    mFormantModulator.SetPhase(0.);
     mCycle = 0;
   }
 
@@ -570,8 +555,6 @@ private:
   static constexpr int mProcessOS{ 1 };
 #endif
 //  double mNyquist{ 20000. };
-
-  // TODO: Order elements mindful of cache access:
 
   // Oscillator ID
   int mID;
@@ -620,10 +603,10 @@ private:
 #endif
 
   // Modulation
-  double mPM{ 0. };
+  bool mPM{ false };
+  bool mRM{ false };
   double mPhaseModAmt{ 0. };
   double mPhaseModFreq;
-  double mRM{ 0. };
   double mRingModAmt{ 0. };
   double mRingModFreq;
   bool mFormantOn{ false };
@@ -633,13 +616,11 @@ private:
 public:
   Wavetable<T>* mLoadedTable{ nullptr };
 #ifndef VECTOR
-  iplug::FastSinOscillator<T> mPhaseModulator;
+  iplug::FastSinOscillator<T>* mPhaseModulator{nullptr};
   iplug::FastSinOscillator<T>* mRingModulator{nullptr};
-  iplug::FastSinOscillator<T> mFormantModulator;
 #else
-  VectorOscillator<T> mPhaseModulator;
+  VectorOscillator<T>* mPhaseModulator{ nullptr };
   VectorOscillator<T>* mRingModulator{ nullptr };
-  VectorOscillator<T> mFormantModulator;
 #endif
 
 #ifdef POLYPHASE_FILTER

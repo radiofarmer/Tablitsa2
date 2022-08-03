@@ -528,6 +528,8 @@ public:
         // Set modulation oscillator frequencies
         T osc1Freq = 440. * pow(2., pitch + mVModulations.GetList()[kVWavetable1PitchOffset][bufferIdx] / 12. + mMaster->mVibratoDepth * mMaster->mVibratoOsc.Process());
         T osc2Freq = 440. * pow(2., pitch + mVModulations.GetList()[kVWavetable2PitchOffset][bufferIdx] / 12. + mMaster->mVibratoDepth * mMaster->mVibratoOsc.Process());
+        mOsc1PhaseMod_Sine.SetFreqCPS(osc1Freq * phaseModFreqFact1);
+        mOsc2PhaseMod_Sine.SetFreqCPS(osc2Freq * phaseModFreqFact2);
         mOsc1RingMod_Sine.SetFreqCPS(osc1Freq * ringModFreqFact1);
         mOsc2RingMod_Sine.SetFreqCPS(osc2Freq * ringModFreqFact2);
         // Osc1
@@ -552,14 +554,16 @@ public:
         mFilters.at(1)->SetDrive(mVModulations.GetList()[kVFilter2Drive][bufferIdx]); // Filter 2 Drive
 
         // Phase and Ring Modulators (freq. only set once per block)
-        mOsc1.SetPhaseModulation(mVModulations.GetList()[kVOsc1PhaseModAmt][bufferIdx], osc1Freq * phaseModFreqFact1);
-        mOsc2.SetPhaseModulation(mVModulations.GetList()[kVOsc2PhaseModAmt][bufferIdx], osc2Freq * phaseModFreqFact2);
+        mOsc1.SetPhaseModulation(mVModulations.GetList()[kVOsc1PhaseModAmt][bufferIdx]);
+        mOsc2.SetPhaseModulation(mVModulations.GetList()[kVOsc2PhaseModAmt][bufferIdx]);
         mOsc1.SetRingModulation(mVModulations.GetList()[kVOsc1RingModAmt][bufferIdx]);
         mOsc2.SetRingModulation(mVModulations.GetList()[kVOsc2RingModAmt][bufferIdx]);
 
         // Signal Processing
 #ifdef VECTOR
         // Modulation Oscillators
+        mOsc1PhaseMod_Sine.Process_Vector();
+        mOsc2PhaseMod_Sine.Process_Vector();
         mOsc1RingMod_Sine.Process_Vector();
         mOsc2RingMod_Sine.Process_Vector();
         // Carrier Oscillators
@@ -640,6 +644,8 @@ public:
     {
       mOsc1.SetSampleRate(sampleRate);
       mOsc2.SetSampleRate(sampleRate);
+      mOsc1PhaseMod_Sine.SetSampleRate(sampleRate);
+      mOsc2PhaseMod_Sine.SetSampleRate(sampleRate);
       mOsc1RingMod_Sine.SetSampleRate(sampleRate);
       mOsc2RingMod_Sine.SetSampleRate(sampleRate);
       mAmpEnv.SetSampleRate(sampleRate);
@@ -791,6 +797,30 @@ public:
       SetSampleRateAndBlockSize(mMaster->mSampleRate, mMaster->mBlockSize); // Set oversampled sample rate, since this isn't accounted for in effect constructors
     }
 
+    // Phase Modulation Source
+    void SetOscillatorPhaseModSource(const int osc, const int src)
+    {
+      WavetableOscillator<T>* pCarrier;
+      VectorOscillator<T>* pSineModulator;
+
+      if (osc == 0) {
+        pCarrier = &mOsc1;
+        pSineModulator = &mOsc1PhaseMod_Sine;
+      }
+      else {
+        pCarrier = &mOsc2;
+        pSineModulator = &mOsc2PhaseMod_Sine;
+      }
+
+      if (src == EOscModulators::kSine)
+        pCarrier->mPhaseModulator = pSineModulator;
+      else if (src == EOscModulators::kOsc1)
+        pCarrier->mPhaseModulator = &mOsc1;
+      else if (src == EOscModulators::kOsc2)
+        pCarrier->mPhaseModulator = &mOsc2;
+    }
+
+    // Ring Modulation Source
     void SetOscillatorRingModSource(const int osc, const int src)
     {
       WavetableOscillator<T>* pCarrier;
@@ -798,11 +828,11 @@ public:
 
       if (osc == 0) {
         pCarrier = &mOsc1;
-        pSineModulator = &mOsc1RingMod_Sine;
+        pSineModulator = &mOsc1PhaseMod_Sine;
       }
       else {
         pCarrier = &mOsc2;
-        pSineModulator = &mOsc2RingMod_Sine;
+        pSineModulator = &mOsc2PhaseMod_Sine;
       }
 
       if (src == EOscModulators::kSine)
@@ -850,6 +880,8 @@ public:
     Sequencer<T, kNumSeqSteps> mSequencer;
     ModulatorList<T, Envelope<T>, FastLFO<T>, Sequencer<T>, kNumModulators> mModulators;
 
+    VectorOscillator<T> mOsc1PhaseMod_Sine;
+    VectorOscillator<T> mOsc2PhaseMod_Sine;
     VectorOscillator<T> mOsc1RingMod_Sine;
     VectorOscillator<T> mOsc2RingMod_Sine;
     EOscModulators mOscModSource{ EOscModulators::kSine };
@@ -1671,15 +1703,17 @@ public:
       }
       case kParamOsc1PhaseModSource:
       {
-        const int sourceID = static_cast<int>(value * kNumOscModulators) ;
+        const int sourceID = static_cast<int>(value) ;
         ForEachVoice([sourceID](Voice& voice) {
+          voice.SetOscillatorPhaseModSource(0, sourceID);
           });
         break;
       }
       case kParamOsc2PhaseModSource:
       {
-        const int sourceID = static_cast<int>(value * kNumOscModulators);
+        const int sourceID = static_cast<int>(value);
         ForEachVoice([sourceID](Voice& voice) {
+          voice.SetOscillatorPhaseModSource(1, sourceID);
           });
           break;
       }
