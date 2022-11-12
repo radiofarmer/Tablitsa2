@@ -239,7 +239,7 @@ enum EVoiceModParams
   kVWavetable2PitchOffset,
   kVWavetable2Position,
   kVWavetable2Bend,
-  kVWavetable2Formant,
+  kVWavetable2XMod,
   kVWavetable2Amp,
   kVFilter1Cutoff,
   kVFilter1Resonance,

@@ -541,7 +541,7 @@ public:
         // Osc2
         mOsc2.SetWtPosition(1. - mVModulations.GetList()[kVWavetable2Position][bufferIdx]); // Wavetable 2 Position
         mOsc2.SetWtBend(mVModulations.GetList()[kVWavetable2Bend][bufferIdx]); // Wavetable 2 Bend
-        mOsc2.SetXModAmt(mVModulations.GetList()[kVWavetable2Formant][bufferIdx]);
+        mOsc2.SetXModAmt(mVModulations.GetList()[kVWavetable2XMod][bufferIdx]);
         T osc2Amp = mVModulations.GetList()[kVWavetable2Amp][bufferIdx];
 
         // Filters
