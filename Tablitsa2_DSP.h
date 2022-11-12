@@ -55,12 +55,12 @@ enum EModulations
   kModWavetable1PitchSmoother,
   kModWavetable1PosSmoother,
   kModWavetable1BendSmoother,
-  kModWavetable1FormantSmoother,
+  kModWavetable1XModSmoother,
   kModWavetable1AmpSmoother,
   kModWavetable2PitchSmoother,
   kModWavetable2PosSmoother,
   kModWavetable2BendSmoother,
-  kModWavetable2FormantSmoother,
+  kModWavetable2XModSmoother,
   kModWavetable2AmpSmoother,
   kModFilter1CutoffSmoother,
   kModFilter1ResonanceSmoother,
@@ -407,7 +407,7 @@ public:
         mAmpEnv.Start(1. - velSubtr * mAmpEnvVelocityMod, 1. - mAmpEnvVelocityMod * kMaxEnvTimeScalar * level);
         mEnv1.Start(1. - velSubtr * mEnv1VelocityMod, 1. - mEnv1VelocityMod * kMaxEnvTimeScalar * level);
         mEnv2.Start(1. - velSubtr * mEnv2VelocityMod, 1. - mEnv2VelocityMod * kMaxEnvTimeScalar * level);
-        // Don't reset oscillators in legato mode - the phase sync will case clicks
+        // Don't reset oscillators in legato mode - the phase sync will cause clicks
         mOsc1.Reset();
         mOsc2.Reset();
       }
@@ -535,13 +535,13 @@ public:
         // Osc1
         mOsc1.SetWtPosition(1. - mVModulations.GetList()[kVWavetable1Position][bufferIdx]); // Wavetable 1 Position
         mOsc1.SetWtBend(mVModulations.GetList()[kVWavetable1Bend][bufferIdx]); // Wavetable 1 Bend
-        mOsc1.SetFormant(mVModulations.GetList()[kVWavetable1Formant][bufferIdx], mOsc1FormantOn);
+        mOsc1.SetXModAmt(mVModulations.GetList()[kVWavetable1XMod][bufferIdx]);
         T osc1Amp = mVModulations.GetList()[kVWavetable1Amp][bufferIdx];
 
         // Osc2
         mOsc2.SetWtPosition(1. - mVModulations.GetList()[kVWavetable2Position][bufferIdx]); // Wavetable 2 Position
         mOsc2.SetWtBend(mVModulations.GetList()[kVWavetable2Bend][bufferIdx]); // Wavetable 2 Bend
-        mOsc2.SetFormant(mVModulations.GetList()[kVWavetable2Formant][bufferIdx], mOsc2FormantOn);
+        mOsc2.SetXModAmt(mVModulations.GetList()[kVWavetable2Formant][bufferIdx]);
         T osc2Amp = mVModulations.GetList()[kVWavetable2Amp][bufferIdx];
 
         // Filters
@@ -892,8 +892,6 @@ public:
     bool mSequencerRestart{ false };
     bool mLegato{ false };
     bool mTriggered{ false }; // Set to true to prevent the note being retriggered immediately after the initial trigger
-    bool mOsc1FormantOn{ false };
-    bool mOsc2FormantOn{ false };
 
     // Unison parameters
     double mDetune{ 0. };
@@ -1579,13 +1577,8 @@ public:
       case kParamWavetable1Bend:
         mParamsToSmooth[kModWavetable1BendSmoother] = value;
         break;
-      case kParamOsc1FormantOn:
-        mSynth.ForEachVoice([paramIdx, value](SynthVoice& voice) {
-          dynamic_cast<Tablitsa2DSP::Voice&>(voice).mOsc1FormantOn = value > 0.5;
-          });
-        break;
-      case kParamWavetable1Formant:
-        mParamsToSmooth[kModWavetable1FormantSmoother] = value / (T)100;
+      case kParamWavetable1XMod:
+        mParamsToSmooth[kModWavetable1XModSmoother] = value / (T)100;
         break;
       case kParamWavetable2Pitch:
         mParamsToSmooth[kModWavetable2PitchSmoother] = value;
@@ -1599,13 +1592,8 @@ public:
       case kParamWavetable2Bend:
         mParamsToSmooth[kModWavetable2BendSmoother] = value;
         break;
-      case kParamOsc2FormantOn:
-        mSynth.ForEachVoice([paramIdx, value](SynthVoice& voice) {
-          dynamic_cast<Tablitsa2DSP::Voice&>(voice).mOsc2FormantOn = value > 0.5;
-          });
-        break;
-      case kParamWavetable2Formant:
-        mParamsToSmooth[kModWavetable2FormantSmoother] = value / (T)100;
+      case kParamWavetable2SXMod:
+        mParamsToSmooth[kModWavetable2XModSmoother] = value / (T)100;
         break;
       case kParamFilter1Type:
       {

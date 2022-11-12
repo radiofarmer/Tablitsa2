@@ -14,6 +14,7 @@
 
 #include <vectorclass.h>
 
+
 #ifdef VECTOR
 #define OVERSAMPLING 2
 #define VECTOR_SIZE 4
@@ -208,13 +209,9 @@ public:
 
   inline void AdjustWavetable(double freqCPS)
   {
-    mMaxFormant = 0.25 * (MaxNote / freqCPS);
+    IOscillator<T>::SetFreqCPS(freqCPS);
 
-    // Set Formant
-    const double freq_adj{ mFormantOn ? freqCPS * mFormant : freqCPS };
-    IOscillator<T>::SetFreqCPS(freq_adj);
-
-    if (std::abs(mPrevFreq - freq_adj) > 0.1)
+    if (std::abs(mPrevFreq - freqCPS) > 0.1)
     {
       SetMipmapLevel();
     }
@@ -222,7 +219,7 @@ public:
     {
       SetMipmapLevel_ByIndex(mMipmapIdx);
     }
-    mPrevFreq = freq_adj;
+    mPrevFreq = freqCPS;
   }
 #ifdef VECTOR
   inline Vec4d __vectorcall ProcessMultiple(double freqCPS)
@@ -417,10 +414,12 @@ public:
     tf.d = phase + (UNITBIT32 * mTableSize - UNITBIT32); // Remove the offset we introduced at the start of UNITBIT32.
     tf.i[HIOFFSET] = normhipart2; // Reset the upper 32 bits
     mCycle = (mCycle + (mPhase < mPrevPhase)) % mWT->mCyclesPerLevel;
-    IOscillator<T>::mPhase = (tf.d - UNITBIT32 * mTableSize);
+    IOscillator<T>::mPhase =  (tf.d - UNITBIT32 * mTableSize);
 
     // Mix wavtables and add ring and formant modulation
-    Vec4d mixed = mul_add(tb1 - tb0, 1 - tableOffset, tb0);
+    Vec4d mixed_lin = mul_add(tb1 - tb0, 1.0 - tableOffset, tb0);
+    Vec4d mixed_nonlin = sin(tb0) * sin(tb1) * 2.;
+    Vec4d mixed = mul_add(mixed_nonlin, mXMod, mixed_lin);
     mixed = mul_add(mixed * (RingMod() - 1.), mRingModAmt, mixed);
 
     // Save last output in an array (for serving as a modulator)
@@ -494,11 +493,9 @@ public:
   }
 
   // Formant: Accepts a value between zero and one
-  inline void SetFormant(const double fmtNorm, const bool formantOn = false)
+  inline void SetXModAmt(const double xmod)
   {
-    mFormant = std::min(1. / (1. - fmtNorm), mMaxFormant);
-    mFormantRecip = 1. / mFormant;
-    mFormantOn = formantOn;
+    mXMod = xmod;
   }
 
   inline double SampleWavetablePosition(double phase)
@@ -584,10 +581,10 @@ private:
   double mWtOffset{ 0. };
   double mWtSpacing{ 1. };
   double mWtBend{ 0 };
-  double mFormant{ 1. };
-  double mFormantRecip{ 1. };
-  double mMaxFormant{ 1. }; // Set according to current pitch
+  double mXMod{ 0. };
   double mPrevFreq;
+
+  int mSyncAcc{ 0 }; // Hard sync master accummulator
 
   // Thread-related members for wavetable updates
   static inline std::condition_variable mCV;
@@ -609,7 +606,6 @@ private:
   double mPhaseModFreq;
   double mRingModAmt{ 0. };
   double mRingModFreq;
-  bool mFormantOn{ false };
 
   static inline constexpr double twoPi{ 6.28318530718 };
 
