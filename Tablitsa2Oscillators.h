@@ -181,12 +181,12 @@ public:
 
     const int prevTableSize{ mTableSize };
 
-    mWtPositionNorm = 1 - std::modf((1. - mWtPositionAbs) * (mWT->mNumTables - 1), &mWtOffset);
-    int tableOffset = std::min(static_cast<int>(mWtOffset), mWT->mNumTables - 2);
+    mWtPositionNorm = std::modf(mWtPositionAbs * (mWT->mNumTables - 1), &mWtOffset);
+    size_t tableOffset = std::min(static_cast<int>(mWtOffset), mWT->mNumTables - 2);
     mLUTLo[0] = mWT->GetMipmapLevel_ByIndex(tableOffset, idx, mTableSize);
-    mLUTLo[1] = mWT->GetMipmapLevel_ByIndex(static_cast<size_t>(tableOffset) + 1, idx, mTableSize);
+    mLUTLo[1] = mWT->GetMipmapLevel_ByIndex(tableOffset + 1, idx, mTableSize);
     mLUTHi[0] = mWT->GetMipmapLevel_ByIndex(tableOffset, idx + 1, mNextTableSize);
-    mLUTHi[1] = mWT->GetMipmapLevel_ByIndex(static_cast<size_t>(tableOffset) + 1, idx + 1, mNextTableSize);
+    mLUTHi[1] = mWT->GetMipmapLevel_ByIndex(tableOffset + 1, idx + 1, mNextTableSize);
     mTableSize /= mWT->mCyclesPerLevel;
     mTableSizeM1 = mTableSize - 1;
     mNextTableSize /= mWT->mCyclesPerLevel;
@@ -332,8 +332,8 @@ public:
 
   inline Vec4d __vectorcall ProcessOversamplingVec4()
   {
-    double tableOffset{ mWtPositionAbs * (mWT->mNumTables - 1) };
-    tableOffset -= std::max(floor(tableOffset - 0.0001), 0.);
+    double tableOffset{ mWtPositionAbs * (double)(mWT->mNumTables - 1) };
+    tableOffset -= std::max(floor(tableOffset), 0.);
 
     double phaseNormShifted = SamplePhaseShift(mPhase / mTableSize); // for phase shift
     double phaseUnshifted = mPhase + (double)UNITBIT32;
@@ -417,13 +417,13 @@ public:
     IOscillator<T>::mPhase =  (tf.d - UNITBIT32 * mTableSize);
 
     // Mix wavtables and add ring and formant modulation
-    Vec4d mixed_lin = mul_add(tb1 - tb0, 1.0 - tableOffset, tb0);
-    Vec4d mixed_nonlin = sin(tb0) * sin(tb1) * 2.;
-    Vec4d mixed = mul_add(mixed_nonlin, mXMod, mixed_lin);
-    mixed = mul_add(mixed * (RingMod() - 1.), mRingModAmt, mixed);
+    Vec4d mixed_lin = mul_add(tb1 - tb0, tableOffset, tb0);
+    //Vec4d mixed_nonlin = sin(tb0) * sin(tb1) * 2.;
+    //Vec4d mixed = mul_add(mixed_nlin, mXMod, mixed_lin);
+    Vec4d mixed = mul_add(mixed_lin * (RingMod() - 1.), mRingModAmt, mixed_lin);
 
     // Save last output in an array (for serving as a modulator)
-    VectorOscillator<T>::StoreLastOutput_Vector(mixed);
+    VectorOscillator<T>::StoreLastOutput_Vector(mixed_lin);
 
     return mixed;
   }
@@ -483,7 +483,7 @@ public:
 
   inline void SetWtPosition(double wtPos)
   {
-    mWtPositionAbs = std::min(wtPos, 0.999);
+    mWtPositionAbs = std::min(wtPos, 0.99999);
   }
 
   // Phase Skew

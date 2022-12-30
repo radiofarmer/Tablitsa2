@@ -481,7 +481,7 @@ public:
 
       // Aftertouch and mod wheel
       double aftertouch = mInputs[kVoiceControlPressure].endValue;
-      double modWheel = mInputs[kVoiceControlTimbre].endValue;
+      double modWheel = mInputs[kVoiceControlModWheel].endValue;
 
       // Set the static (note-constant) modulator values
       T keytrack = (pitch * 12. + 69.) / 128.;
@@ -533,13 +533,13 @@ public:
         mOsc1RingMod_Sine.SetFreqCPS(osc1Freq * ringModFreqFact1);
         mOsc2RingMod_Sine.SetFreqCPS(osc2Freq * ringModFreqFact2);
         // Osc1
-        mOsc1.SetWtPosition(1. - mVModulations.GetList()[kVWavetable1Position][bufferIdx]); // Wavetable 1 Position
+        mOsc1.SetWtPosition(mVModulations.GetList()[kVWavetable1Position][bufferIdx]); // Wavetable 1 Position
         mOsc1.SetWtBend(mVModulations.GetList()[kVWavetable1Bend][bufferIdx]); // Wavetable 1 Bend
         mOsc1.SetXModAmt(mVModulations.GetList()[kVWavetable1XMod][bufferIdx]);
         T osc1Amp = mVModulations.GetList()[kVWavetable1Amp][bufferIdx];
 
         // Osc2
-        mOsc2.SetWtPosition(1. - mVModulations.GetList()[kVWavetable2Position][bufferIdx]); // Wavetable 2 Position
+        mOsc2.SetWtPosition(mVModulations.GetList()[kVWavetable2Position][bufferIdx]); // Wavetable 2 Position
         mOsc2.SetWtBend(mVModulations.GetList()[kVWavetable2Bend][bufferIdx]); // Wavetable 2 Bend
         mOsc2.SetXModAmt(mVModulations.GetList()[kVWavetable2XMod][bufferIdx]);
         T osc2Amp = mVModulations.GetList()[kVWavetable2Amp][bufferIdx];
